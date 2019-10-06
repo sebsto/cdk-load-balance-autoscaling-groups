@@ -35,6 +35,10 @@ To cleanup the environment when you are done testing :
 cdk destroy
 ```
 
+## Application versions
+
+The sample app is a sample static HTML page, taken from [Boostrap's sample](https://getbootstrap.com/docs/4.0/examples/carousel/).  Two versions of the same app are deployed.  The blue version is deployed to the blue scaling group and the green version is deployed to the green group.
+
 ## Useful commands
 
  * `npm run build`   compile typescript to js
