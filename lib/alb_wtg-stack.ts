@@ -38,7 +38,8 @@ export class AlbWtgStack extends cdk.Stack {
     // allow system manager agent to make api calls to systems manager 
     role.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
 
-    var targets : autoscaling.AutoScalingGroup[] = [];
+    // create the auto scaling groups with 2 instances each.
+    const autoScalingGroups : autoscaling.AutoScalingGroup[] = [];
     for (let env of ["green", "blue"]) {
 
         // define a user data script to install & launch our web server
@@ -49,16 +50,19 @@ export class AlbWtgStack extends cdk.Stack {
                              `/bin/mv /usr/share/nginx/html/index.html /usr/share/nginx/html/index.html.orig`,
                              `/bin/cp -r -n ${env}/* /usr/share/nginx/html/`);
 
-        // create an auto scaling group in each environment
+        // create an auto scaling group for each environment
         const asg = new autoscaling.AutoScalingGroup(this, `NewsBlogAutoScalingGroup--${env}`, {
           vpc,
           instanceType: ec2.InstanceType.of(ec2.InstanceClass.BURSTABLE3, ec2.InstanceSize.MICRO),
           machineImage: new ec2.AmazonLinuxImage(),
+          desiredCapacity: 2,
           role: role,
           userData: userData
         });
-        targets.push(asg);
-      }
+
+        autoScalingGroups.push(asg);
+
+    }
 
     // create a load balancer
     const lb = new elbv2.ApplicationLoadBalancer(this, 'LB', {
@@ -70,17 +74,33 @@ export class AlbWtgStack extends cdk.Stack {
       port: 80,
     });
 
-    listener.addTargets('Target', {
-      port: 80,
-      targets: targets
-    });
-
     listener.connections.allowDefaultPortFromAnyIpv4('Open to the world');
 
-    targets.forEach(t => {
-      t.scaleOnRequestCount('AModestLoad', {
+    listener.addTargets(`Targets`, {
+      port: 80,
+      targets: autoScalingGroups
+    });    
+
+    // add a scaling rule
+    autoScalingGroups.forEach(asg => {
+      asg.scaleOnRequestCount(`AModestLoad-${asg}`, {
         targetRequestsPerSecond: 1
       });
-    })
+    });
+
+    // autoScalingGroups.forEach(asg => {
+    //   // create a load balancer Target Group for each auto scaling group 
+    //   listener.addTargets(`Target-${asg}`, {
+    //     port: 80,
+    //     targets: [asg],
+    //   });    
+
+    //   // add a scaling rule
+    //   asg.scaleOnRequestCount(`AModestLoad-${asg}`, {
+    //     targetRequestsPerSecond: 1
+    //   });
+    // });
+
+
   }    
 }
