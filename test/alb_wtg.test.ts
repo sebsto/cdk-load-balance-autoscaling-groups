@@ -1,13 +1,14 @@
-import { expect as expectCDK, matchTemplate, MatchStyle } from '@aws-cdk/assert';
-import cdk = require('@aws-cdk/core');
-import AlbWtg = require('../lib/alb_wtg-stack');
+// import { expect as expectCDK, matchTemplate, MatchStyle } from '@aws-cdk/assert';
+import { Template, Match } from 'aws-cdk-lib/assertions';
+import 'source-map-support/register';
+import * as cdk from 'aws-cdk-lib';
+import { AlbWtgStack } from '../lib/alb_wtg-stack';
 
 test('Empty Stack', () => {
     const app = new cdk.App();
     // WHEN
-    const stack = new AlbWtg.AlbWtgStack(app, 'MyTestStack');
+    const stack = new AlbWtgStack(app, 'MyTestStack');
     // THEN
-    expectCDK(stack).to(matchTemplate({
-      "Resources": {}
-    }, MatchStyle.EXACT))
+    const actual = app.synth().getStackArtifact(stack.artifactId).template;
+    expect(actual.Resources ?? {}).toEqual({});
 });

@@ -1,14 +1,15 @@
-import cdk    = require('@aws-cdk/core');
-import ec2    = require('@aws-cdk/aws-ec2');
-import assets = require('@aws-cdk/aws-s3-assets');
-import autoscaling = require('@aws-cdk/aws-autoscaling');
-import elbv2       = require('@aws-cdk/aws-elasticloadbalancingv2');
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import * as ec2    from 'aws-cdk-lib/aws-ec2';
+import * as assets from 'aws-cdk-lib/aws-s3-assets';
+import * as autoscaling from 'aws-cdk-lib/aws-autoscaling';
+import * as elbv2       from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 
-import { Role, ServicePrincipal, ManagedPolicy } from '@aws-cdk/aws-iam'
-import { UserData } from '@aws-cdk/aws-ec2';
+import { Role, ServicePrincipal, ManagedPolicy } from 'aws-cdk-lib/aws-iam'
+import { UserData } from 'aws-cdk-lib/aws-ec2';
 
 export class AlbWtgStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     //
@@ -76,15 +77,17 @@ export class AlbWtgStack extends cdk.Stack {
 
     listener.connections.allowDefaultPortFromAnyIpv4('Open to the world');
 
-    listener.addTargets(`Targets`, {
-      port: 80,
-      targets: autoScalingGroups
-    });    
+    autoScalingGroups.forEach(asg => {
+      listener.addTargets(`Targets-${asg}`, {
+        port: 80,
+        targets: [asg]
+      });
+    });
 
     // add a scaling rule
     autoScalingGroups.forEach(asg => {
       asg.scaleOnRequestCount(`AModestLoad-${asg}`, {
-        targetRequestsPerSecond: 1
+        targetRequestsPerMinute: 1
       });
     });
 
